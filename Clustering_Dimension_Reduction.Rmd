@@ -13,7 +13,8 @@ knitr::opts_chunk$set(echo = TRUE, eval = T)
 ```
 
 # Lab Section
-Download auto data from the *Statistical Learning* book website here: http://www-bcf.usc.edu/~gareth/ISL/data.html
+Download auto data from the *Statistical Learning* book website here: 
+http://www-bcf.usc.edu/~gareth/ISL/data.html)
 
 Today, we are going over Hierarchical clustering, K-Means Clustering, PCA, and ICA. 
 
@@ -22,11 +23,17 @@ library(ggplot2)
 library(tidyverse)
 library(ggfortify)
 library(fastICA)
+library(RCurl)
+library(fastICA)
+# myfile <- getURL("http://www-bcf.usc.edu/~gareth/ISL/data.html")
+
 ```
 
 ```{r}
+
+
 # read in Auto data
-Auto_data <- read_csv("/Users/ay1392/Desktop/Auto.csv")
+Auto_data <- read_csv("/Users/ShabbirYusuf/OneDrive/Documents/NYU/R/Machine_learning/hw1-Shubra786/Auto.csv")
 
 #remove cars with unknown horsepower and set horsepower to numeric
 Auto_data <- Auto_data %>% 
@@ -267,27 +274,165 @@ heatmap(a$S)
 
 ## Homework
 
-```{r}
+0. Subset the Iris dataset to only include `Sepal.Length`, `Sepal.Width`, `Petal.Length`, and `Petal.Width`.
+
+```{r, include=FALSE}
+
+library(ggplot2)
+library(tidyverse)
+library(ggfortify)
+library(fastICA)
+library(RCurl)
+library(cluster)  
+library(factoextra)
+library(dplyr)
+
 data(iris)
+
+head(iris) # view top of data set
+
+iris_subset <- iris[,1:4]
+
+head(iris_subset)
+
 ```
 
-0. Subset the Iris dataset to only include `Sepal.Length`, `Sepal.Width`, `Petal.Length`, and `Petal.Width`. 
+ 
 
-1. Write out the Kmeans algorithm by hand, and run two iterations of it. 
+1. Write out the Kmeans algorithm by hand, and run two iterations of it.
 
-2. Run PCA on the Iris dataset. Plot a scatter plot of PC1 vs PC2 and include the percent variance those PCs describe. 
+```{r}
+
+
+# K means algorithm
+
+# Step 1: randomly assign data into 4 groups (although I am aware there are 3 species of iris, 4 groups have been selected for experimentation purposes)
+
+n <- nrow(iris_subset)
+index <- sample(1:n,size = n)
+group_1 <- iris_subset[index[1:(n/4)],]
+group_2 <- iris_subset[index[(n/4):(2*n/4)],]
+group_3 <- iris_subset[index[(2*n/4):(3*n/4)],]
+group_4 <- iris_subset[index[(3*n/4):n],]
+
+# Step 2: calculate the centroid (mean point) of 4 groups
+group_1_mean <- apply(group_1,2,mean)
+group_2_mean <- apply(group_2,2,mean)
+group_3_mean <- apply(group_3,2,mean)
+group_4_mean <- apply(group_4,2,mean)
+
+# Step 3: align the data points to closest centroid (mean point)
+align_index <- c()
+for (point_index in 1:n) {
+point <- iris_subset[point_index,]
+distance_matrix <- c(as.numeric(dist(rbind(point,group_1_mean),method = "euclidean")), as.numeric(dist(rbind(point,group_2_mean),method = "euclidean")), as.numeric(dist(rbind(point,group_3_mean),method = "euclidean")),
+as.numeric(dist(rbind(point,group_4_mean),method = "euclidean")))  
+align_index <- c(align_index,c(which.min(distance_matrix)))
+}
+print(align_index)
+
+
+```
+
+
+Iteration 1:
+
+ [1] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+ [45] 1 1 1 1 1 1 2 4 4 4 4 4 4 1 4 4 1 4 4 4 1 4 4 4 4 4 4 4 4 4 4 4 4 4 4 1 4 4 4 4 4 4 4 4
+ [89] 4 4 4 4 4 1 4 4 4 4 1 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4
+[133] 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4
+
+Iteration 2:
+
+[1] 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4
+ [45] 4 4 4 4 4 4 1 1 1 3 1 1 1 4 1 3 2 1 3 1 2 1 1 3 1 2 1 1 1 1 1 1 1 1 1 2 2 2 3 1 1 1 1 1
+ [89] 1 3 1 1 3 4 1 1 1 1 4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+[133] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+
+
+
+2. Run PCA on the Iris dataset. Plot a scatter plot of PC1 vs PC2 and include the percent variance those PCs describe.
+
+
+```{r}
+
+iris_subset_pca <- prcomp(iris_subset) # PCA
+autoplot(iris_subset_pca) # scatter plot with percentage variance of PCs
+
+```
+
 
 3. Run ICA on the Iris dataset. Plot the independent components as a heatmap.
+
+
+```{r}
+
+a <- fastICA(iris_subset, 7, alg.typ = "parallel", fun = "logcosh", alpha = 1,
+             method = "R", row.norm = FALSE, maxit = 200,
+             tol = 0.0001, verbose = TRUE)
+
+heatmap(a$S)
+
+
+```
+
 
 4. Use Kmeans to cluster the Iris data. 
   * Use the silhouette function in the cluster package to find the optimal number of clusters for kmeans for the iris dataset. Then cluster using kmeans clustering. Does the data cluster by species? 
   * Using this clustering, color the PCA plot according to the clusters.
+  
+  
+```{r}
+
+# Determining the optimal number of clusters using the average silhouette method
+
+fviz_nbclust(x = iris_subset, FUNcluster = kmeans, method = 'silhouette')
+
+# Compute k-means clustering with k = 2
+set.seed(123)
+iris_kmeans <- kmeans(iris_subset, centers = 2, nstart = 25)
+print(iris_kmeans)
+
+# There are 3 species in the iris data set, yet this method has produced 2 clusters.
+
+# color-coded plot
+set.seed(1)
+autoplot(kmeans(iris_subset, 2), data = iris_subset)
+ 
+
+```
+
   
 5. Use hierarchical clustering to cluster the Iris data.
 
   * Try two different linkage types, and two different distance metrics. 
   * For one linkage type and one distance metric, try two different cut points. 
   * Using this clustering, color the PCA plot according to the clusters. (6  plots in total)
+  
+  
+```{r}
+
+hierarchical_iris_man <- dist(iris_subset, method = "manhattan") # manhattan distance metric
+tree_man_com <- hclust(hierarchical_iris_man, method = "complete") # complete linkage
+plot(tree_man_com) # plot tree, shows best choices for no. of clusters to be either 3 or 4
+tree_man_com_cut3 <- cutree(tree_man_com, k = 3) # cut into 3 clusters
+autoplot(iris_subset_pca, colour = tree_man_com_cut3) # visualize clusters
+tree_man_com_cut4 <- cutree(tree_man_com, k = 4) # cut into 4 clusters
+autoplot(iris_subset_pca, colour = tree_man_com_cut4) # visualize clusters
+
+
+
+
+hierarchical_iris_euc <- dist(iris_subset, method = "euclidean") # euclidean distance metric
+tree_euc_av <- hclust(hierarchical_iris_euc, method = "average") # average linkage
+plot(tree_euc_av) # plot tree, shows best choices for no. of clusters to be either 3 or 4
+tree_euc_av_cut3 <- cutree(tree_euc_av, k = 3) # cut into 3 clusters
+autoplot(iris_subset_pca, colour = tree_euc_av_cut3) # visualize clusters
+tree_euc_av_cut4 <- cutree(tree_euc_av, k = 4) # cut into 4 clusters
+autoplot(iris_subset_pca, colour = tree_euc_av_cut4) # visualize clusters
+
+```
+
   
 
 # Optional material
